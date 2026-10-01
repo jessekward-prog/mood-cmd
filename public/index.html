@@ -632,8 +632,8 @@ const PERIODS = {
   night: { name: 'night',     extra: { key: 'connection', label: 'CONNECTION', icon: 'people', lo: 'Alone', hi: 'Connected' },
            pos: ['Best bit', 'Best bit of today'], neg: ['Worst bit', 'Worst bit of today'] },
 };
-// night runs 5pm to 5am, so a 1am check-in isn't asked how it slept
-const periodAt = ts => { const h = new Date(ts).getHours(); return h >= 5 && h < 12 ? 'morn' : h >= 12 && h < 17 ? 'arvo' : 'night'; };
+// morning 4am-11am, afternoon 11am-5pm, night 5pm-4am, so a 1am check-in isn't asked how it slept
+const periodAt = ts => { const h = new Date(ts).getHours(); return h >= 4 && h < 11 ? 'morn' : h >= 11 && h < 17 ? 'arvo' : 'night'; };
 const extra = makeBar($('#extraBar'), (v, byUser) => {
   $('#extraVal').textContent = String(v).padStart(2, '0');
   $('#extraBar').setAttribute('aria-valuetext', `${v} of 10`);
@@ -990,14 +990,14 @@ function toast(msg) {
 }
 
 // ---------- after a check-in: the done screen and a countdown to the next one ----------
-// The morning/afternoon/night a moment belongs to. Night runs 5pm-5am, so shifting back five hours
+// The morning/afternoon/night a moment belongs to. Night runs 5pm-4am, so shifting back four hours
 // puts 1am on the evening it belongs to. Mirrors blockOf in lib/report.js.
-const blockOf = ts => new Date(ts - 5 * 36e5).toDateString() + ' ' + periodAt(ts);
+const blockOf = ts => new Date(ts - 4 * 36e5).toDateString() + ' ' + periodAt(ts);
 // When the next check-in is due after one made at `after`: the first nudge time in a different part
 // of the day (a nudge in the same part is skipped by the server), or with no nudges set, the start
 // of the next part of the day.
 function nextDue(after) {
-  const times = state.settings.nudgeTimes.length ? state.settings.nudgeTimes : ['05:00', '12:00', '17:00'];
+  const times = state.settings.nudgeTimes.length ? state.settings.nudgeTimes : ['04:00', '11:00', '17:00'];
   const slots = [];
   for (let d = 0; d < 3; d++) for (const t of times) {
     const x = new Date(after); x.setDate(x.getDate() + d); x.setHours(+t.slice(0, 2), +t.slice(3), 0, 0);
