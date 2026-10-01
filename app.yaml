@@ -1,0 +1,13 @@
+name: mood-cmd
+port: 3048
+postgres: true
+autoUpdate: true
+description: Ten-second mood and energy check-ins in a 16-bit skin. Your local model writes the weekly report; nudges go out over ntfy.
+icon: public/icons/icon-192.png
+# APP_PIN and the LM_STUDIO_* names are auto-detected; ntfy isn't, so it's declared here.
+env:
+  - APP_PIN
+  - NTFY_URL
+  - NTFY_TOKEN
+  - NTFY_TOPIC
+  - APP_URL

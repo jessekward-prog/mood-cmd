@@ -1,0 +1,16 @@
+{
+  "name": "mood-cmd",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ten-second mood and energy check-ins, with reports from a local LM Studio model and nudges over ntfy.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "engines": { "node": ">=22" }
+}
