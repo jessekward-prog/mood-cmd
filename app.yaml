@@ -4,7 +4,7 @@ postgres: true
 autoUpdate: true
 description: Ten-second mood and energy check-ins in a 16-bit skin. Your local model writes the weekly report; nudges go out over ntfy.
 icon: public/icons/icon-192.png
-# APP_PIN and the LM_STUDIO_* names are auto-detected; ntfy isn't, so it's declared here.
+# Hostess auto-detects APP_PIN, LM_STUDIO_* and NTFY_*; they're listed so the card shows them on older Hostess versions too.
 env:
   - APP_PIN
   - NTFY_URL

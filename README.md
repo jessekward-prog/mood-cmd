@@ -21,7 +21,7 @@ If a check-in or the reports turn heavy, the report page shows Lifeline's number
 
 Deploy this repo's git URL from the Hostess dashboard. `app.yaml` asks for Postgres, and Hostess fills in `LM_STUDIO_URL`, `LM_STUDIO_API_KEY` and `LM_STUDIO_MODEL` from its library config. Open the app and set your PIN.
 
-For push, set `NTFY_URL` (and `NTFY_TOKEN` if your ntfy server has auth on) in the app's env panel and redeploy.
+Push comes the same way: if Hostess's PUSH panel is filled in, `NTFY_URL`, `NTFY_TOKEN` and `NTFY_TOPIC` arrive on deploy too. Without it, set them on the app's card and redeploy.
 
 ## Run it anywhere else
 
