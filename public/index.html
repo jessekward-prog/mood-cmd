@@ -204,6 +204,12 @@ body::after {
 .btn.ghost { --face: var(--bg-3); --shade: #1a1a2c; --fg: var(--ink); }
 .save { margin-top: var(--s2); min-height: 56px; }
 
+/* ---------- play: done + countdown ---------- */
+.done-word { display: block; margin-top: var(--s3); font-family: var(--font-display); font-size: 32px; line-height: 1.2; color: var(--green); text-shadow: 3px 3px 0 #0b3d18; }
+.countdown { text-align: center; }
+.countdown .clock { font-size: 32px; margin: var(--s4) 0 var(--s3); color: var(--ink); text-shadow: 3px 3px 0 var(--q-dark); }
+.countdown .next { color: var(--ink); }
+
 /* ---------- clear overlay ---------- */
 .clear {
   position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; align-content: center; gap: var(--s5);
@@ -397,6 +403,7 @@ body::after {
 
   <main>
     <section class="screen" id="screen-play" aria-labelledby="tab-play">
+     <div id="checkin">
       <div class="stage px">
         <div class="callout">
           <div class="seg-ctl period" id="period" role="radiogroup" aria-label="Time of day">
@@ -446,6 +453,25 @@ body::after {
       </label>
 
       <button class="btn block save" id="saveBtn">SAVE CHECK-IN</button>
+     </div>
+
+     <div id="done" hidden>
+      <div class="stage px">
+        <div class="callout">
+          <span class="micro" id="doneLabel"></span>
+          <span class="done-word">DONE!</span>
+        </div>
+        <div class="meter px" id="doneMeter" aria-hidden="true"><i></i><i></i><i></i><i></i><span class="cursor" id="doneCursor"></span></div>
+      </div>
+      <div id="doneEntry"></div>
+      <div class="panel px countdown">
+        <span class="micro">Next check-in in</span>
+        <div class="clock digits" id="countdown" role="timer">--:--:--</div>
+        <span class="micro next" id="nextLabel"></span>
+        <p class="opt-note" id="nextNote" style="margin:var(--s3) 0 0"></p>
+      </div>
+      <button class="btn ghost block" id="logAgain">LOG ANOTHER NOW</button>
+     </div>
     </section>
 
     <section class="screen" id="screen-records" aria-labelledby="tab-records"><div id="records"></div></section>
@@ -653,6 +679,7 @@ async function saveCheckin() {
   catch (e) { toast("Couldn't save: " + e.message); return; }
   finally { btn.disabled = false; }
   state.entries.push(entry);
+  logAnyway = false;
   posIn.value = negIn.value = '';
   posIn.blur(); negIn.blur();
   $('#toast').classList.remove('show');
@@ -676,7 +703,7 @@ function celebrate(word) {
     document.body.appendChild(s);
     setTimeout(() => s.remove(), 800);
   }
-  setTimeout(() => { c.hidden = true; mood.set(5); energy.set(5); extra.set(5); periodPicked = false; setPeriod(periodAt(Date.now())); }, 1400);
+  setTimeout(() => { c.hidden = true; mood.set(5); energy.set(5); extra.set(5); periodPicked = false; setPeriod(periodAt(Date.now())); renderPlay(); }, 1400);
 }
 
 function renderCount() { $('#logCount').textContent = String(state.entries.length).padStart(3, '0'); }
@@ -716,6 +743,18 @@ function chartSVG(days) {
     <path class="energy-line" d="${step('energy')}"/><path class="mood-line" d="${step('mood')}"/>${dots}</svg>`;
 }
 
+function entryCard(e, i, withDel = true) {
+  const q = quadrant(e.mood, e.energy), P = PERIODS[e.period || periodAt(e.ts)], xv = e[P.extra.key];
+  return `<article class="entry px" style="--i:${Math.min(i, 10)};--c:${COLORS[q.key]}">
+    <div class="entry-head"><span class="entry-word">${q.word}</span>
+      ${withDel ? `<button class="del" data-del="${e.id}" aria-label="Delete entry">DEL</button>` : ''}</div>
+    <span class="entry-time micro">${P.name} · ${stamp(e.ts)}</span>
+    <div class="entry-nums micro"><span>Mood <b>${pad2(e.mood)}</b></span><span>Energy <b>${pad2(e.energy)}</b></span>${xv != null ? `<span>${P.extra.label} <b>${pad2(xv)}</b></span>` : ''}</div>
+    <p class="plus"><b>+1</b><span>${esc(e.pos)}</span></p>
+    <p class="minus"><b>-1</b><span>${esc(e.neg)}</span></p>
+  </article>`;
+}
+
 function renderRecords() {
   const root = $('#records');
   const { since, entries, days } = last30();
@@ -747,15 +786,7 @@ function renderRecords() {
     </div>
     ${byPeriod ? `<div class="panel-head" style="margin-top:var(--s5)"><h2>BY TIME OF DAY</h2></div><div class="stats three">${byPeriod}</div>` : ''}
     <div class="panel-head" style="margin-top:var(--s5)"><h2>LOG</h2><span class="micro">Newest first</span></div>
-    ${entries.slice().reverse().map((e, i) => { const q = quadrant(e.mood, e.energy), P = PERIODS[e.period || periodAt(e.ts)], xv = e[P.extra.key]; return `
-      <article class="entry px" style="--i:${Math.min(i, 10)};--c:${COLORS[q.key]}">
-        <div class="entry-head"><span class="entry-word">${q.word}</span>
-          <button class="del" data-del="${e.id}" aria-label="Delete entry">DEL</button></div>
-        <span class="entry-time micro">${P.name} · ${stamp(e.ts)}</span>
-        <div class="entry-nums micro"><span>Mood <b>${pad2(e.mood)}</b></span><span>Energy <b>${pad2(e.energy)}</b></span>${xv != null ? `<span>${P.extra.label} <b>${pad2(xv)}</b></span>` : ''}</div>
-        <p class="plus"><b>+1</b><span>${esc(e.pos)}</span></p>
-        <p class="minus"><b>-1</b><span>${esc(e.neg)}</span></p>
-      </article>`; }).join('')}`;
+    ${entries.slice().reverse().map((e, i) => entryCard(e, i)).join('')}`;
 }
 
 // two taps to delete: the first arms the button, the second within 3s deletes
@@ -876,7 +907,7 @@ function renderOptions() {
   $('#options').innerHTML = `
     ${state.features.push ? '' : `<div class="info"><b>Push is off.</b> Set NTFY_URL on the server (and NTFY_TOKEN if your ntfy server has auth on) to get nudges and reports on your phone.</div>`}
     <div class="panel px"><div class="panel-head"><h2>NUDGES</h2><span class="micro">${st.nudgeTimes.length} a day</span></div>
-      <p class="opt-note">A nudge is skipped if you've already checked in since the one before it. No streaks, no guilt.</p>
+      <p class="opt-note">A nudge is skipped if you've already checked in that morning, afternoon or night. No streaks, no guilt.</p>
       <div class="times">${st.nudgeTimes.map((t, i) => `<span class="time-chip"><input type="time" value="${t}" data-time="${i}" aria-label="Nudge ${i + 1} time">
         <button data-del-time="${i}" aria-label="Remove ${t}">&times;</button></span>`).join('')}</div>
       <button class="btn ghost" data-act="add-time" ${st.nudgeTimes.length >= 4 ? 'disabled' : ''}>ADD TIME</button>
@@ -958,6 +989,47 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+// ---------- after a check-in: the done screen and a countdown to the next one ----------
+// The morning/afternoon/night a moment belongs to. Night runs 5pm-5am, so shifting back five hours
+// puts 1am on the evening it belongs to. Mirrors blockOf in lib/report.js.
+const blockOf = ts => new Date(ts - 5 * 36e5).toDateString() + ' ' + periodAt(ts);
+// When the next check-in is due after one made at `after`: the first nudge time in a different part
+// of the day (a nudge in the same part is skipped by the server), or with no nudges set, the start
+// of the next part of the day.
+function nextDue(after) {
+  const times = state.settings.nudgeTimes.length ? state.settings.nudgeTimes : ['05:00', '12:00', '17:00'];
+  const slots = [];
+  for (let d = 0; d < 3; d++) for (const t of times) {
+    const x = new Date(after); x.setDate(x.getDate() + d); x.setHours(+t.slice(0, 2), +t.slice(3), 0, 0);
+    slots.push(x.getTime());
+  }
+  return slots.sort((a, b) => a - b).find(t => t > after && blockOf(t) !== blockOf(after));
+}
+let logAnyway = false, doneTimer = null;
+function renderPlay() {
+  clearInterval(doneTimer);
+  const last = state.entries.at(-1), due = last && nextDue(last.ts);
+  const done = !logAnyway && !!due && due > Date.now();
+  $('#checkin').hidden = done; $('#done').hidden = !done;
+  if (!done) { if (!periodPicked) setPeriod(periodAt(Date.now())); return updateMeter(); } // back to the bars, on the current part of the day
+  const q = quadrant(last.mood, last.energy), P = PERIODS[last.period || periodAt(last.ts)];
+  document.documentElement.style.setProperty('--q', COLORS[q.key]);
+  $('#doneLabel').textContent = `${P.name} check-in`; // the card below has the time
+  $('#doneMeter').dataset.q = q.key;
+  $('#doneCursor').style.transform = `translate(${2 + (last.mood - 1) / 9 * 74}px, ${2 + (10 - last.energy) / 9 * 74}px)`;
+  $('#doneEntry').innerHTML = entryCard(last, 0, false);
+  $('#nextLabel').textContent = `${PERIODS[periodAt(due)].name} · ${new Date(due).toLocaleString('en-AU', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`;
+  $('#nextNote').textContent = state.settings.nudgeTimes.length && state.features.push ? "You'll get a nudge then." : 'Come back then, or log one now.';
+  const tick = () => {
+    const s = Math.ceil((due - Date.now()) / 1000);
+    if (s <= 0) return renderPlay(); // due now: back to the check-in
+    $('#countdown').textContent = [s / 3600, (s % 3600) / 60, s % 60].map(n => pad2(Math.floor(n))).join(':');
+  };
+  tick();
+  doneTimer = setInterval(tick, 1000);
+}
+$('#logAgain').addEventListener('click', () => { logAnyway = true; periodPicked = false; setPeriod(periodAt(Date.now())); renderPlay(); });
+
 // ---------- routing (hash, so Android back steps through screens) ----------
 const SCREENS = ['play', 'records', 'report', 'options'];
 function route() {
@@ -966,6 +1038,7 @@ function route() {
     $('#screen-' + s).classList.toggle('active', s === name);
     $('#tab-' + s).setAttribute('aria-selected', s === name);
   });
+  if (name === 'play') renderPlay(); else clearInterval(doneTimer);
   if (name === 'records') renderRecords();
   if (name === 'report') renderReport();
   if (name === 'options') renderOptions();

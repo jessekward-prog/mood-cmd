@@ -11,7 +11,7 @@ Each check-in is three bars and two short thoughts: mood, energy, and one bar th
 - **Check-in:** two drag bars plus a time-of-day bar, two one-line thoughts. The screen colour follows the mood x energy quadrant.
 - **Records:** 30-day chart, a colour per day, averages by time of day, and the full log.
 - **Reports:** 7 or 30 days, written by your local model. The arithmetic (averages, morning against night, high sleep against low sleep) is done in code and handed to the model in words, so the numbers in the report are right.
-- **Nudges:** up to four times a day. A nudge is skipped if you've already checked in since the one before it. No streaks.
+- **Nudges:** up to four times a day. A nudge is skipped if you've already checked in that morning, afternoon or night. No streaks.
 - **Weekly report:** written and pushed on the day and time you pick.
 - **PIN:** set on first launch, stored hashed in Postgres, checked on every data route. Five wrong guesses lock PIN entry for five minutes.
 
