@@ -21,7 +21,9 @@ If a check-in or the reports turn heavy, the report page shows Lifeline's number
 
 Deploy this repo's git URL from the Hostess dashboard. `app.yaml` asks for Postgres, and Hostess fills in `LM_STUDIO_URL`, `LM_STUDIO_API_KEY` and `LM_STUDIO_MODEL` from its library config. Open the app and set your PIN.
 
-Push comes the same way: if Hostess's PUSH panel is filled in, `NTFY_URL`, `NTFY_TOKEN` and `NTFY_TOPIC` arrive on deploy too. Without it, set them on the app's card and redeploy.
+Push comes the same way: Hostess runs its own push server and sets `NTFY_URL`, `NTFY_TOKEN` and `NTFY_TOPIC` on deploy. Subscribe your phone from Hostess's PUSH panel.
+
+The card's **ai link** section shows which model writes the reports and lets you switch it, live, with no redeploy.
 
 ## Run it anywhere else
 
@@ -46,6 +48,7 @@ Local development: `npm install`, copy `.env.example` to `.env`, then `npm run d
 | `NTFY_URL` | no | ntfy server for nudges and reports. Push is off without it. |
 | `NTFY_TOKEN` | no | Access token, for an ntfy server with auth on. |
 | `NTFY_TOPIC` | no | Default topic (`mood-cmd`). Changeable in the app. |
+| `SYNC_SECRET` | no | Lets a Hostess dashboard read and change the library settings live (`GET`/`PUT /api/lm`). Hostess generates it; elsewhere, leave it unset. |
 | `APP_URL` | no | Public address, for push click-through links and the push icon. Without it, the app uses the https address it was last opened on. |
 
 **On a public ntfy server, anyone who guesses the topic can read your reports.** Use your own server with auth on, or at least a long random topic.

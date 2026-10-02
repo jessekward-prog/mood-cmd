@@ -5,7 +5,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { pool, migrate, get, set, prefs, savePrefs, toEntry, toReport } from './lib/db.js'
-import { generateReport, reportPushText, libraryConfigured, PERIODS } from './lib/report.js'
+import { generateReport, reportPushText, libraryConfigured, loadLm, saveLm, lmState, PERIODS } from './lib/report.js'
 import { push, pushConfigured, links } from './lib/push.js'
 import { startScheduler } from './lib/scheduler.js'
 
@@ -79,6 +79,21 @@ app.post('/api/auth/change', requireAuth, wrap(async (req, res) => {
   const pin = String(req.body?.pin ?? '')
   if (!PIN_RE.test(pin)) return res.status(400).json({ error: 'The PIN must be 4 to 8 digits.' })
   res.json({ token: await savePin(pin) })
+}))
+
+/* ── Hostess's ai link: the dashboard card reads and changes the library connection with the
+   SYNC_SECRET Hostess generated for this app. The PIN token works too. ── */
+
+const SYNC_SECRET = process.env.SYNC_SECRET || ''
+const authOrSync = (req, res, next) => (SYNC_SECRET && same(req.headers['x-sync-secret'], SYNC_SECRET) ? next() : requireAuth(req, res, next))
+
+app.get('/api/lm', authOrSync, wrap(async (_req, res) => res.json(await lmState())))
+app.put('/api/lm', authOrSync, wrap(async (req, res) => {
+  const b = req.body || {}
+  if (b.provider && b.provider !== 'local') return res.status(400).json({ error: 'mood-cmd only runs on a local model.' })
+  if (typeof b.url === 'string' && b.url.trim() && !/^https?:\/\/\S+$/.test(b.url.trim())) return res.status(400).json({ error: 'The address must start with http:// or https://' })
+  await saveLm(b)
+  res.json(await lmState())
 }))
 
 /* ── data: everything below needs the token ── */
@@ -196,7 +211,7 @@ async function seedPin() {
   console.log('PIN set from APP_PIN')
 }
 
-migrate().then(seedPin).then(() => {
+migrate().then(seedPin).then(loadLm).then(() => {
   const server = app.listen(PORT, '0.0.0.0', () => console.log(`mood-cmd on :${PORT} (push ${pushConfigured() ? 'on' : 'off'}, library ${libraryConfigured() ? 'on' : 'off'})`))
   const stopScheduler = startScheduler(appUrl)
   // Redeploys send SIGTERM then SIGKILL ten seconds later. Node as PID 1 has no default
